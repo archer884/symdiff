@@ -3,8 +3,8 @@
 extern crate symdiff;
 extern crate test;
 
-use symdiff::SymmetricDifference;
 use test::Bencher;
+use symdiff::SymmetricDifference;
 
 #[bench]
 fn internal(b: &mut Bencher) {
