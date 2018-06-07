@@ -3,7 +3,7 @@ pub trait SymmetricDifference: IntoIterator {
     where
         Self::Item: Eq + Ord,
         Rhs: IntoIterator<Item = Self::Item>;
-    
+
     fn diff_internal<Rhs, FL, FR>(self, rhs: Rhs, fl: FL, fr: FR)
     where
         Self::Item: Eq + Ord,
@@ -43,7 +43,7 @@ impl<T: IntoIterator> SymmetricDifference for T {
         loop {
             match (curr_left.take(), curr_right.take()) {
                 (None, None) => return,
-                
+
                 (Some(item), None) => {
                     fl(item);
                     for item in left {
@@ -77,7 +77,7 @@ impl<T: IntoIterator> SymmetricDifference for T {
                         curr_left = left.next();
                         curr_right = right.next();
                     }
-                }
+                },
             }
         }
     }
@@ -92,7 +92,7 @@ pub enum Tag<T> {
 impl<T> Tag<T> {
     pub fn unwrap(self) -> T {
         match self {
-            Tag::Left(x) | Tag::Right(x) => x
+            Tag::Left(x) | Tag::Right(x) => x,
         }
     }
 }
@@ -128,21 +128,19 @@ where
             match (left.take(), right.take()) {
                 (Some(left), None) => return Some(Tag::Left(left)),
                 (None, Some(right)) => return Some(Tag::Right(right)),
-                (Some(left), Some(right)) => {
-                    match left.cmp(&right) {
-                        Greater => {
-                            self.rem = Some(Tag::Left(left));
-                            return Some(Tag::Right(right));
-                        }
-
-                        Less => {
-                            self.rem = Some(Tag::Right(right));
-                            return Some(Tag::Left(left));
-                        }
-
-                        _ => (),
+                (Some(left), Some(right)) => match left.cmp(&right) {
+                    Greater => {
+                        self.rem = Some(Tag::Left(left));
+                        return Some(Tag::Right(right));
                     }
-                }
+
+                    Less => {
+                        self.rem = Some(Tag::Right(right));
+                        return Some(Tag::Left(left));
+                    }
+
+                    _ => (),
+                },
 
                 _ => return None,
             }
