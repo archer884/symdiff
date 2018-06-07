@@ -170,4 +170,29 @@ mod tests {
 
         assert_eq!(set, expected_diff);
     }
+
+    #[test]
+    fn diff_internal_works() {
+        let mut left = Vec::new();
+        let mut right = Vec::new();
+
+        LEFT.diff_internal(
+            RIGHT,
+            |x| {
+                left.push(x);
+            },
+            |x| {
+                right.push(x);
+            },
+        );
+
+        let set: HashSet<_> = left.into_iter().chain(right).collect();
+        let expected_diff: HashSet<_> = {
+            let left: HashSet<_> = LEFT.into_iter().collect();
+            let right: HashSet<_> = RIGHT.into_iter().collect();
+            left.symmetric_difference(&right).map(|&x| x).collect()
+        };
+
+        assert_eq!(set, expected_diff);
+    }
 }
