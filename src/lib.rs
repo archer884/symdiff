@@ -10,6 +10,12 @@ pub trait SymmetricDifference: IntoIterator {
         Rhs: IntoIterator<Item = Self::Item>,
         FL: FnMut(Self::Item),
         FR: FnMut(Self::Item);
+
+    fn diff_internal_alt<Rhs, F>(self, rhs: Rhs, f: F)
+    where
+        Self::Item: Eq + Ord,
+        Rhs: IntoIterator<Item = Self::Item>,
+        F: FnMut(Tag<Self::Item>);
 }
 
 impl<T: IntoIterator> SymmetricDifference for T {
@@ -69,6 +75,62 @@ impl<T: IntoIterator> SymmetricDifference for T {
 
                     Less => {
                         fl(a);
+                        curr_left = left.next();
+                        curr_right = Some(b);
+                    }
+
+                    Equal => {
+                        curr_left = left.next();
+                        curr_right = right.next();
+                    }
+                },
+            }
+        }
+    }
+
+    fn diff_internal_alt<Rhs, F>(self, rhs: Rhs, mut f: F)
+    where
+        Self::Item: Eq + Ord,
+        Rhs: IntoIterator<Item = Self::Item>,
+        F: FnMut(Tag<Self::Item>),
+    {
+        use std::cmp::Ordering::*;
+
+        let mut left = self.into_iter();
+        let mut right = rhs.into_iter();
+
+        let mut curr_left = left.next();
+        let mut curr_right = right.next();
+
+        loop {
+            match (curr_left.take(), curr_right.take()) {
+                (None, None) => return,
+
+                (Some(item), None) => {
+                    f(Tag::Left(item));
+                    for item in left {
+                        f(Tag::Left(item));
+                    }
+                    return;
+                }
+
+                (None, Some(item)) => {
+                    f(Tag::Right(item));
+                    for item in right {
+                        f(Tag::Right(item));
+                    }
+                    return;
+                }
+
+                (Some(a), Some(b)) => match a.cmp(&b) {
+                    Greater => {
+                        f(Tag::Right(b));
+                        curr_left = Some(a);
+                        curr_right = right.next();
+                    }
+
+                    Less => {
+                        f(Tag::Left(a));
                         curr_left = left.next();
                         curr_right = Some(b);
                     }
@@ -187,6 +249,23 @@ mod tests {
         );
 
         let set: HashSet<_> = left.into_iter().chain(right).collect();
+        let expected_diff: HashSet<_> = {
+            let left: HashSet<_> = LEFT.into_iter().collect();
+            let right: HashSet<_> = RIGHT.into_iter().collect();
+            left.symmetric_difference(&right).map(|&x| x).collect()
+        };
+
+        assert_eq!(set, expected_diff);
+    }
+
+    #[test]
+    fn diff_internal_alt_works() {
+        let mut set = HashSet::new();
+
+        LEFT.diff_internal_alt(RIGHT, |x| {
+            set.insert(x.unwrap());
+        });
+
         let expected_diff: HashSet<_> = {
             let left: HashSet<_> = LEFT.into_iter().collect();
             let right: HashSet<_> = RIGHT.into_iter().collect();
