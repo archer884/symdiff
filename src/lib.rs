@@ -4,18 +4,18 @@ pub trait SymmetricDifference: IntoIterator {
         Self::Item: Eq + Ord,
         Rhs: IntoIterator<Item = Self::Item>;
 
-    fn diff_internal<Rhs, FL, FR>(self, rhs: Rhs, fl: FL, fr: FR)
+    fn iter_difference<Rhs, F>(self, rhs: Rhs, f: F)
+    where
+        Self::Item: Eq + Ord,
+        Rhs: IntoIterator<Item = Self::Item>,
+        F: FnMut(Tag<Self::Item>);
+
+    fn iter_difference_alt<Rhs, FL, FR>(self, rhs: Rhs, fl: FL, fr: FR)
     where
         Self::Item: Eq + Ord,
         Rhs: IntoIterator<Item = Self::Item>,
         FL: FnMut(Self::Item),
         FR: FnMut(Self::Item);
-
-    fn diff_internal_alt<Rhs, F>(self, rhs: Rhs, f: F)
-    where
-        Self::Item: Eq + Ord,
-        Rhs: IntoIterator<Item = Self::Item>,
-        F: FnMut(Tag<Self::Item>);
 }
 
 impl<T: IntoIterator> SymmetricDifference for T {
@@ -31,7 +31,63 @@ impl<T: IntoIterator> SymmetricDifference for T {
         }
     }
 
-    fn diff_internal<Rhs, FL, FR>(self, rhs: Rhs, mut fl: FL, mut fr: FR)
+    fn iter_difference<Rhs, F>(self, rhs: Rhs, mut f: F)
+    where
+        Self::Item: Eq + Ord,
+        Rhs: IntoIterator<Item = Self::Item>,
+        F: FnMut(Tag<Self::Item>),
+    {
+        use std::cmp::Ordering::*;
+
+        let mut left = self.into_iter();
+        let mut right = rhs.into_iter();
+
+        let mut curr_left = left.next();
+        let mut curr_right = right.next();
+
+        loop {
+            match (curr_left.take(), curr_right.take()) {
+                (None, None) => return,
+
+                (Some(item), None) => {
+                    f(Tag::Left(item));
+                    for item in left {
+                        f(Tag::Left(item));
+                    }
+                    return;
+                }
+
+                (None, Some(item)) => {
+                    f(Tag::Right(item));
+                    for item in right {
+                        f(Tag::Right(item));
+                    }
+                    return;
+                }
+
+                (Some(a), Some(b)) => match a.cmp(&b) {
+                    Greater => {
+                        f(Tag::Right(b));
+                        curr_left = Some(a);
+                        curr_right = right.next();
+                    }
+
+                    Less => {
+                        f(Tag::Left(a));
+                        curr_left = left.next();
+                        curr_right = Some(b);
+                    }
+
+                    Equal => {
+                        curr_left = left.next();
+                        curr_right = right.next();
+                    }
+                },
+            }
+        }
+    }
+
+    fn iter_difference_alt<Rhs, FL, FR>(self, rhs: Rhs, mut fl: FL, mut fr: FR)
     where
         Self::Item: Eq + Ord,
         Rhs: IntoIterator<Item = Self::Item>,
@@ -75,62 +131,6 @@ impl<T: IntoIterator> SymmetricDifference for T {
 
                     Less => {
                         fl(a);
-                        curr_left = left.next();
-                        curr_right = Some(b);
-                    }
-
-                    Equal => {
-                        curr_left = left.next();
-                        curr_right = right.next();
-                    }
-                },
-            }
-        }
-    }
-
-    fn diff_internal_alt<Rhs, F>(self, rhs: Rhs, mut f: F)
-    where
-        Self::Item: Eq + Ord,
-        Rhs: IntoIterator<Item = Self::Item>,
-        F: FnMut(Tag<Self::Item>),
-    {
-        use std::cmp::Ordering::*;
-
-        let mut left = self.into_iter();
-        let mut right = rhs.into_iter();
-
-        let mut curr_left = left.next();
-        let mut curr_right = right.next();
-
-        loop {
-            match (curr_left.take(), curr_right.take()) {
-                (None, None) => return,
-
-                (Some(item), None) => {
-                    f(Tag::Left(item));
-                    for item in left {
-                        f(Tag::Left(item));
-                    }
-                    return;
-                }
-
-                (None, Some(item)) => {
-                    f(Tag::Right(item));
-                    for item in right {
-                        f(Tag::Right(item));
-                    }
-                    return;
-                }
-
-                (Some(a), Some(b)) => match a.cmp(&b) {
-                    Greater => {
-                        f(Tag::Right(b));
-                        curr_left = Some(a);
-                        curr_right = right.next();
-                    }
-
-                    Less => {
-                        f(Tag::Left(a));
                         curr_left = left.next();
                         curr_right = Some(b);
                     }
@@ -234,21 +234,13 @@ mod tests {
     }
 
     #[test]
-    fn diff_internal_works() {
-        let mut left = Vec::new();
-        let mut right = Vec::new();
+    fn iter_difference_works() {
+        let mut set = HashSet::new();
 
-        LEFT.diff_internal(
-            RIGHT,
-            |x| {
-                left.push(x);
-            },
-            |x| {
-                right.push(x);
-            },
-        );
+        LEFT.iter_difference(RIGHT, |x| {
+            set.insert(x.unwrap());
+        });
 
-        let set: HashSet<_> = left.into_iter().chain(right).collect();
         let expected_diff: HashSet<_> = {
             let left: HashSet<_> = LEFT.into_iter().collect();
             let right: HashSet<_> = RIGHT.into_iter().collect();
@@ -259,13 +251,21 @@ mod tests {
     }
 
     #[test]
-    fn diff_internal_alt_works() {
-        let mut set = HashSet::new();
+    fn iter_difference_alt_works() {
+        let mut left = Vec::new();
+        let mut right = Vec::new();
 
-        LEFT.diff_internal_alt(RIGHT, |x| {
-            set.insert(x.unwrap());
-        });
+        LEFT.iter_difference_alt(
+            RIGHT,
+            |x| {
+                left.push(x);
+            },
+            |x| {
+                right.push(x);
+            },
+        );
 
+        let set: HashSet<_> = left.into_iter().chain(right).collect();
         let expected_diff: HashSet<_> = {
             let left: HashSet<_> = LEFT.into_iter().collect();
             let right: HashSet<_> = RIGHT.into_iter().collect();

@@ -3,8 +3,8 @@
 extern crate symdiff;
 extern crate test;
 
-use test::Bencher;
 use symdiff::SymmetricDifference;
+use test::Bencher;
 
 #[bench]
 fn internal(b: &mut Bencher) {
@@ -15,15 +15,9 @@ fn internal(b: &mut Bencher) {
     let right = &right;
 
     b.iter(|| {
-        left.diff_internal(
-            right,
-            |x| {
-                test::black_box(x);
-            },
-            |x| {
-                test::black_box(x);
-            },
-        );
+        left.iter_difference(right, |x| {
+            test::black_box(x);
+        });
     });
 }
 
@@ -36,9 +30,15 @@ fn internal_alt(b: &mut Bencher) {
     let right = &right;
 
     b.iter(|| {
-        left.diff_internal_alt(right, |x| {
-            test::black_box(x);
-        });
+        left.iter_difference_alt(
+            right,
+            |x| {
+                test::black_box(x);
+            },
+            |x| {
+                test::black_box(x);
+            },
+        );
     });
 }
 
