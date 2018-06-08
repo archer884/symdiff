@@ -22,27 +22,6 @@ fn internal(b: &mut Bencher) {
 }
 
 #[bench]
-fn internal_alt(b: &mut Bencher) {
-    let left = build_left();
-    let right = build_right();
-
-    let left = &left;
-    let right = &right;
-
-    b.iter(|| {
-        left.iter_difference_alt(
-            right,
-            |x| {
-                test::black_box(x);
-            },
-            |x| {
-                test::black_box(x);
-            },
-        );
-    });
-}
-
-#[bench]
 fn external(b: &mut Bencher) {
     let left = build_left();
     let right = build_right();

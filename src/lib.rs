@@ -9,13 +9,6 @@ pub trait SymmetricDifference: IntoIterator {
         Self::Item: Eq + Ord,
         Rhs: IntoIterator<Item = Self::Item>,
         F: FnMut(Tag<Self::Item>);
-
-    fn iter_difference_alt<Rhs, FL, FR>(self, rhs: Rhs, fl: FL, fr: FR)
-    where
-        Self::Item: Eq + Ord,
-        Rhs: IntoIterator<Item = Self::Item>,
-        FL: FnMut(Self::Item),
-        FR: FnMut(Self::Item);
 }
 
 impl<T: IntoIterator> SymmetricDifference for T {
@@ -74,63 +67,6 @@ impl<T: IntoIterator> SymmetricDifference for T {
 
                     Less => {
                         f(Tag::Left(a));
-                        curr_left = left.next();
-                        curr_right = Some(b);
-                    }
-
-                    Equal => {
-                        curr_left = left.next();
-                        curr_right = right.next();
-                    }
-                },
-            }
-        }
-    }
-
-    fn iter_difference_alt<Rhs, FL, FR>(self, rhs: Rhs, mut fl: FL, mut fr: FR)
-    where
-        Self::Item: Eq + Ord,
-        Rhs: IntoIterator<Item = Self::Item>,
-        FL: FnMut(Self::Item),
-        FR: FnMut(Self::Item),
-    {
-        use std::cmp::Ordering::*;
-
-        let mut left = self.into_iter();
-        let mut right = rhs.into_iter();
-
-        let mut curr_left = left.next();
-        let mut curr_right = right.next();
-
-        loop {
-            match (curr_left.take(), curr_right.take()) {
-                (None, None) => return,
-
-                (Some(item), None) => {
-                    fl(item);
-                    for item in left {
-                        fl(item);
-                    }
-                    return;
-                }
-
-                (None, Some(item)) => {
-                    fr(item);
-                    for item in right {
-                        fr(item);
-                    }
-                    return;
-                }
-
-                (Some(a), Some(b)) => match a.cmp(&b) {
-                    Greater => {
-                        fr(b);
-                        curr_left = Some(a);
-                        curr_right = right.next();
-                    }
-
-                    Less => {
-                        fl(a);
                         curr_left = left.next();
                         curr_right = Some(b);
                     }
@@ -241,31 +177,6 @@ mod tests {
             set.insert(x.unwrap());
         });
 
-        let expected_diff: HashSet<_> = {
-            let left: HashSet<_> = LEFT.into_iter().collect();
-            let right: HashSet<_> = RIGHT.into_iter().collect();
-            left.symmetric_difference(&right).map(|&x| x).collect()
-        };
-
-        assert_eq!(set, expected_diff);
-    }
-
-    #[test]
-    fn iter_difference_alt_works() {
-        let mut left = Vec::new();
-        let mut right = Vec::new();
-
-        LEFT.iter_difference_alt(
-            RIGHT,
-            |x| {
-                left.push(x);
-            },
-            |x| {
-                right.push(x);
-            },
-        );
-
-        let set: HashSet<_> = left.into_iter().chain(right).collect();
         let expected_diff: HashSet<_> = {
             let left: HashSet<_> = LEFT.into_iter().collect();
             let right: HashSet<_> = RIGHT.into_iter().collect();
