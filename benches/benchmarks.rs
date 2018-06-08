@@ -51,7 +51,7 @@ fn external(b: &mut Bencher) {
     let right = &right;
 
     b.iter(|| {
-        for item in left.diff(right) {
+        for item in left.difference(right) {
             test::black_box(item);
         }
     });

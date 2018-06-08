@@ -1,5 +1,5 @@
 pub trait SymmetricDifference: IntoIterator {
-    fn diff<Rhs>(self, rhs: Rhs) -> SymDiffIter<Self::IntoIter, Rhs::IntoIter>
+    fn difference<Rhs>(self, rhs: Rhs) -> SymDiffIter<Self::IntoIter, Rhs::IntoIter>
     where
         Self::Item: Eq + Ord,
         Rhs: IntoIterator<Item = Self::Item>;
@@ -19,7 +19,7 @@ pub trait SymmetricDifference: IntoIterator {
 }
 
 impl<T: IntoIterator> SymmetricDifference for T {
-    fn diff<Rhs>(self, rhs: Rhs) -> SymDiffIter<Self::IntoIter, Rhs::IntoIter>
+    fn difference<Rhs>(self, rhs: Rhs) -> SymDiffIter<Self::IntoIter, Rhs::IntoIter>
     where
         Self::Item: Eq + Ord,
         Rhs: IntoIterator<Item = Self::Item>,
@@ -223,7 +223,7 @@ mod tests {
 
     #[test]
     fn diff_works() {
-        let set: HashSet<_> = LEFT.diff(RIGHT).map(Tag::unwrap).collect();
+        let set: HashSet<_> = LEFT.difference(RIGHT).map(Tag::unwrap).collect();
         let expected_diff: HashSet<_> = {
             let left: HashSet<_> = LEFT.into_iter().collect();
             let right: HashSet<_> = RIGHT.into_iter().collect();
