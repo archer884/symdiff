@@ -94,6 +94,12 @@ impl<T> Tag<T> {
         }
     }
 
+    pub fn value(&self) -> &T {
+        match self {
+            Tag::Left(x) | Tag::Right(x) => x,
+        }
+    }
+
     pub fn is_left(&self) -> bool {
         match self {
             Tag::Left(_) => true,
