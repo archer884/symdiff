@@ -93,6 +93,20 @@ impl<T> Tag<T> {
             Tag::Left(x) | Tag::Right(x) => x,
         }
     }
+
+    pub fn is_left(&self) -> bool {
+        match self {
+            Tag::Left(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_right(&self) -> bool {
+        match self {
+            Tag::Right(_) => true,
+            _ => false,
+        }
+    }
 }
 
 pub struct SymDiffIter<Left, Right>
