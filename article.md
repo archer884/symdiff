@@ -118,7 +118,7 @@ You'll probably notice right off the bat that this is an iterator implemented in
 
 This is a two-parter in Rust; here we have the constructor--which is basically a member of a trait...
 
-```
+```rust
 fn difference<Rhs>(self, rhs: Rhs) -> SymDiffIter<Self::IntoIter, Rhs::IntoIter>
 where
     Self::Item: Eq + Ord,
@@ -134,7 +134,7 @@ where
 
 ...and here we have the actual SymDiffIter implementation:
 
-```
+```rust
 impl<Left, Right> Iterator for SymDiffIter<Left, Right>
 where
     Left: Iterator,
